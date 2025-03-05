@@ -1,1 +1,90 @@
-test
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OAuth 2.0 Login</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 50px;
+      }
+      #status {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Login to OAuth 2.0 API</h2>
+
+    <button onclick="login()">Login</button>
+
+    <p id="status">Not authenticated</p>
+
+    <script>
+      const CLIENT_ID = "your-client-id"; // Replace with your real Client ID
+      const AUTH_URL = "https://your-oauth-provider.com/auth"; // OAuth provider's auth URL
+      const TOKEN_URL = "https://your-oauth-provider.com/token"; // Token exchange URL
+      const REDIRECT_URI = "https://yourusername.github.io/yourrepo"; // Update with your GitHub Pages URL
+      const SCOPE = "read"; // Adjust scope as needed
+
+      function login() {
+        // Redirect user to OAuth provider's authorization page
+        const authRequestUrl = `${AUTH_URL}?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+          REDIRECT_URI
+        )}&scope=${SCOPE}&state=xyz`;
+        window.location.href = authRequestUrl;
+      }
+
+      function exchangeCodeForToken(authCode) {
+        fetch(TOKEN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: CLIENT_ID,
+            redirect_uri: REDIRECT_URI,
+            grant_type: "authorization_code",
+            code: authCode,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.access_token) {
+              sessionStorage.setItem("access_token", data.access_token);
+              document.getElementById("status").innerText = "✅ Connected!";
+            } else {
+              document.getElementById("status").innerText =
+                "❌ Authentication failed!";
+            }
+          })
+          .catch(() => {
+            document.getElementById("status").innerText =
+              "❌ Error Authenticating!";
+          });
+      }
+
+      function handleOAuthCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const authCode = urlParams.get("code");
+
+        if (authCode) {
+          document.getElementById("status").innerText = "Authenticating...";
+          exchangeCodeForToken(authCode);
+          window.history.replaceState({}, document.title, REDIRECT_URI); // Clean URL after auth
+        }
+      }
+
+      function checkAuth() {
+        const token = sessionStorage.getItem("access_token");
+        if (token) {
+          document.getElementById("status").innerText = "✅ Connected!";
+        }
+      }
+
+      handleOAuthCallback();
+      checkAuth();
+    </script>
+  </body>
+</html>
